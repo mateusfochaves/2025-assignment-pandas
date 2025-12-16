@@ -18,7 +18,7 @@ def load_data():
     referendum = pd.read_csv(r"data/referendum.csv", sep=";")
     regions = pd.read_csv(r"data/regions.csv")
     departments = pd.read_csv(r"data/departments.csv")
-    
+
     return referendum, regions, departments
 
 
@@ -29,15 +29,15 @@ def merge_regions_and_departments(df_reg, df_dep):
     ['code_reg', 'name_reg', 'code_dep', 'name_dep']
     """
     regions_and_departments = pd.merge(df_dep, df_reg,
-                                       left_on="region_code",  
+                                       left_on="region_code",
                                        right_on="code",
                                        suffixes=("_dep", "_reg"))
     regions_and_departments = regions_and_departments.rename(
         columns={"code": "code_dep"}
         )
-    regions_and_departments = regions_and_departments[["code_reg", 
-                                                       "name_reg", 
-                                                       "code_dep", 
+    regions_and_departments = regions_and_departments[["code_reg",
+                                                       "name_reg",
+                                                       "code_dep",
                                                        "name_dep"]]
 
     return regions_and_departments
@@ -52,22 +52,16 @@ def merge_referendum_and_areas(referendum, regions_and_departments):
     DOM-TOM-COM departments are departements that are remote from metropolitan
     France, like Guadaloupe, Reunion, or Tahiti.
     """
-    
     referendum = (
         referendum[~referendum["Department code"].str.contains("Z", na=False)]
     )
     s = regions_and_departments["code_dep"].astype(str).str.strip()
     regions_and_departments = (
         regions_and_departments[~s.str.fullmatch(r"\d{3}")].assign(
-        code_dep=s.where(~s.str.fullmatch(r"\d+"), s.str.lstrip("0"))
-        )
-    )
-    
-    merge_referendum_and_areas = referendum.merge(regions_and_departments,
-                         left_on="Department code", right_on="code_dep",
-                         how="left")
-    
-    
+            code_dep=s.where(~s.str.fullmatch(r"\d+"), s.str.lstrip("0"))))
+    merge_referendum_and_areas = referendum.merge(
+        regions_and_departments,
+        left_on="Department code", right_on="code_dep", how="left")
 
     return merge_referendum_and_areas
 
@@ -86,14 +80,13 @@ def compute_referendum_result_by_regions(referendum_and_areas):
         referendum_and_areas
         .groupby("code_reg", as_index=True)
         .agg({
-            "name_reg": "first",   
+            "name_reg": "first",
             "Registered": "sum",
             "Abstentions": "sum",
             "Null": "sum",
             "Choice A": "sum",
             "Choice B": "sum",
-        })
-    )
+        }))
 
 
 def plot_referendum_map(referendum_result_by_regions):
@@ -109,7 +102,6 @@ def plot_referendum_map(referendum_result_by_regions):
     gdf = gdf.rename(columns={"code": "code_reg"})
     map = gdf.merge(referendum_result_by_regions, on="code_reg", how="inner")
     map["ratio"] = map["Choice A"] / (map['Choice A'] + map["Choice B"])
-    
     image = map.plot(column="ratio", legend=True)
     image.set_axis_off()
     plt.show()
