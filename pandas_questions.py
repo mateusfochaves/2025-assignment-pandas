@@ -53,11 +53,15 @@ def merge_referendum_and_areas(referendum, regions_and_departments):
     France, like Guadaloupe, Reunion, or Tahiti.
     """
     
-    referendum = referendum[~referendum["Department code"].str.contains("Z", na=False)]
+    referendum = (
+        referendum[~referendum["Department code"].str.contains("Z", na=False)]
+    )
     s = regions_and_departments["code_dep"].astype(str).str.strip()
-    regions_and_departments = regions_and_departments[~s.str.fullmatch(r"\d{3}")].assign(
+    regions_and_departments = (
+        regions_and_departments[~s.str.fullmatch(r"\d{3}")].assign(
         code_dep=s.where(~s.str.fullmatch(r"\d+"), s.str.lstrip("0"))
         )
+    )
     
     merge_referendum_and_areas = referendum.merge(regions_and_departments,
                          left_on="Department code", right_on="code_dep",
@@ -74,19 +78,22 @@ def compute_referendum_result_by_regions(referendum_and_areas):
     The return DataFrame should be indexed by `code_reg` and have columns:
     ['name_reg', 'Registered', 'Abstentions', 'Null', 'Choice A', 'Choice B']
     """
-    referendum_and_areas["Town code"] = referendum_and_areas["Town code"].astype(str)
+    referendum_and_areas["Town code"] = (
+        referendum_and_areas["Town code"].astype(str)
+    )
 
     return (
         referendum_and_areas
         .groupby("code_reg", as_index=True)
         .agg({
-            "name_reg": "first",   # mantém o nome da região
+            "name_reg": "first",   
             "Registered": "sum",
             "Abstentions": "sum",
             "Null": "sum",
             "Choice A": "sum",
             "Choice B": "sum",
-        }))
+        })
+    )
 
 
 def plot_referendum_map(referendum_result_by_regions):
